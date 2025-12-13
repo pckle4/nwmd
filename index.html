@@ -22,15 +22,15 @@
       
       /* Scrollbar Styling */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
         background: #cbd5e1; 
-        border-radius: 4px;
+        border-radius: 3px;
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8; 
@@ -162,8 +162,8 @@
       .paper-preview {
         background-color: white;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        margin: 2rem auto;
-        padding: 20mm; /* Standard margin */
+        margin: 0 auto;
+        padding: 25mm; /* Standard margin */
         min-height: 297mm;
         box-sizing: border-box;
       }
@@ -181,8 +181,8 @@
       /* PRINT STYLES */
       @media print {
         @page {
-          margin: 15mm;
-          /* Size is handled by browser dialog usually, but we can suggest */
+          margin: 25mm;
+          size: auto;
         }
         
         body {
@@ -216,6 +216,8 @@
           overflow: visible !important;
           border: none !important;
           background: white !important;
+          padding: 0 !important;
+          margin: 0 !important;
         }
 
         /* Reset paper shadow/margins for print */
@@ -256,10 +258,8 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-gray-50 text-gray-900 h-screen overflow-hidden">
     <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
+  </body>
 </html>
