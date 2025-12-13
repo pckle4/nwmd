@@ -157,6 +157,11 @@
         font-weight: 500;
         gap: 0.4rem;
       }
+      
+      /* Print-only visibility control */
+      .print-only {
+        display: none !important;
+      }
 
       /* Paper Simulation Styles */
       .paper-preview {
@@ -188,8 +193,12 @@
       /* PRINT STYLES */
       @media print {
         @page {
-          margin: 25mm;
+          margin: 20mm; /* Custom margins: 20mm (approx 0.8in) */
           size: auto;
+        }
+        
+        .print-only {
+          display: inline-flex !important;
         }
         
         body {
