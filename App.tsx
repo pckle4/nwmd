@@ -27,22 +27,12 @@ export default function App() {
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load from local storage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('markdown-content');
-    if (saved) setMarkdown(saved);
-    const savedCss = localStorage.getItem('custom-css');
-    if (savedCss) setCustomCss(savedCss);
-    const savedName = localStorage.getItem('doc-name');
-    if (savedName) setDocName(savedName);
-  }, []);
-
   // Update Page Title for PDF "Save As"
   useEffect(() => {
     document.title = docName || 'Markdown to PDF Pro';
   }, [docName]);
 
-  // Debounced parsing, Stats & Auto-Save
+  // Debounced parsing & Stats
   useEffect(() => {
     const timer = setTimeout(async () => {
       try {
@@ -54,24 +44,12 @@ export default function App() {
         const words = text ? text.split(/\s+/).length : 0;
         setWordCount(words);
         setReadingTime(Math.ceil(words / 200)); // Approx 200 wpm
-        
-        // Auto-save
-        localStorage.setItem('markdown-content', markdown);
       } catch (e) {
         console.error("Parse error", e);
       }
     }, 150);
     return () => clearTimeout(timer);
   }, [markdown]);
-
-  // Save CSS and Name when they change
-  useEffect(() => {
-    localStorage.setItem('custom-css', customCss);
-  }, [customCss]);
-  
-  useEffect(() => {
-    localStorage.setItem('doc-name', docName);
-  }, [docName]);
 
   // Viewport Handler
   useEffect(() => {
