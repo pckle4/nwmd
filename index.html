@@ -201,16 +201,29 @@
           display: inline-flex !important;
         }
         
-        body {
+        /* High Quality Printing Fixes */
+        html, body {
           background-color: white !important;
-          color: black !important;
+          color: #000000 !important; /* Force pure black for sharpness */
           height: auto !important;
           overflow: visible !important;
+          
+          /* Improve text rendering */
+          text-rendering: geometricPrecision !important;
+          -webkit-font-smoothing: antialiased !important;
+          -moz-osx-font-smoothing: grayscale !important;
         }
         
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
+          
+          /* Prevent blurriness caused by transforms */
+          transform: none !important;
+          box-shadow: none !important;
+          text-shadow: none !important;
+          filter: none !important;
+          backdrop-filter: none !important;
         }
 
         #root, main {
@@ -251,10 +264,20 @@
           max-width: none !important;
           padding: 0 !important;
           margin: 0 !important;
+          color: #000000 !important; /* Force pure black text */
+        }
+        
+        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+           color: #000000 !important;
         }
         
         pre, blockquote, table, img, .doc-footer {
           break-inside: avoid;
+        }
+        
+        img {
+          /* Improve image quality in print */
+          image-rendering: -webkit-optimize-contrast; 
         }
       }
     </style>
