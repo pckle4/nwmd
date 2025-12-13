@@ -1,0 +1,5 @@
+{
+  "name": "Markdown to PDF Pro",
+  "description": "A serverless-ready application to convert Markdown into beautifully formatted PDFs using Next.js and Puppeteer.",
+  "requestFramePermissions": []
+}
