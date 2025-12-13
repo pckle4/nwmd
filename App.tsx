@@ -239,7 +239,7 @@ export default function App() {
 
     return (
       <div className="doc-footer">
-        <div className="footer-badge bg-pink-50 text-pink-700 border border-pink-100">
+        <div className="footer-badge bg-pink-50 text-pink-700 border border-pink-100 print-only">
            <span>Made with love by</span>
            <strong>NoWhile</strong>
            <Icons.Heart />
