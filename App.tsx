@@ -8,6 +8,7 @@ export default function App() {
   const [markdown, setMarkdown] = useState<string>(SAMPLE_MARKDOWN);
   const [html, setHtml] = useState<string>('');
   const [customCss, setCustomCss] = useState<string>('');
+  const [docName, setDocName] = useState<string>('Untitled Document');
   
   // Modals state
   const [activeModal, setActiveModal] = useState<'none' | 'link' | 'table' | 'css'>('none');
@@ -32,7 +33,14 @@ export default function App() {
     if (saved) setMarkdown(saved);
     const savedCss = localStorage.getItem('custom-css');
     if (savedCss) setCustomCss(savedCss);
+    const savedName = localStorage.getItem('doc-name');
+    if (savedName) setDocName(savedName);
   }, []);
+
+  // Update Page Title for PDF "Save As"
+  useEffect(() => {
+    document.title = docName || 'Markdown to PDF Pro';
+  }, [docName]);
 
   // Debounced parsing, Stats & Auto-Save
   useEffect(() => {
@@ -56,10 +64,14 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [markdown]);
 
-  // Save CSS when it changes
+  // Save CSS and Name when they change
   useEffect(() => {
     localStorage.setItem('custom-css', customCss);
   }, [customCss]);
+  
+  useEffect(() => {
+    localStorage.setItem('doc-name', docName);
+  }, [docName]);
 
   // Viewport Handler
   useEffect(() => {
@@ -91,7 +103,9 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `document-${new Date().toISOString().slice(0, 10)}.md`;
+    // Sanitize filename
+    const safeName = (docName || 'document').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    a.download = `${safeName}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -271,10 +285,16 @@ export default function App() {
           <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-500/30">
             <Icons.File />
           </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight leading-none">Markdown Pro</h1>
+          <div className="flex flex-col">
+            <input 
+              type="text" 
+              value={docName}
+              onChange={(e) => setDocName(e.target.value)}
+              className={`text-lg font-bold tracking-tight leading-none focus:outline-none focus:border-b border-transparent transition-all w-48 sm:w-64 bg-transparent p-0.5 ${theme === 'light' ? 'focus:border-blue-500 hover:border-gray-300' : 'focus:border-blue-400 hover:border-gray-600'}`}
+              placeholder="Document Name"
+            />
             <p className={`text-xs font-medium mt-1 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-              Professional PDF Generator
+              Markdown to PDF Pro
             </p>
           </div>
         </div>
