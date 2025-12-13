@@ -178,27 +178,33 @@
           size: auto;
         }
         
-        html, body {
+        /* Global Print Resets */
+        /* Reset heights and overflows to allow pagination */
+        html, body, #root, #root > div, main {
           background-color: white !important;
           color: #000000 !important;
           height: auto !important;
+          min-height: 0 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
           overflow: visible !important;
-          
-          /* Optimization for sharp text */
-          text-rendering: geometricPrecision !important;
-          -webkit-font-smoothing: antialiased !important;
+          display: block !important;
+          position: relative !important;
         }
         
-        .print-only {
-          display: flex !important;
+        /* Force text sharpness */
+        html, body {
+           text-rendering: geometricPrecision !important;
+           -webkit-font-smoothing: antialiased !important;
         }
 
-        /* Hide UI */
-        header, nav, button, textarea, .toolbar, .stats-bar, .no-print, .focus-mode-toggle, .zoom-controls { 
+        /* Hide all UI elements including editor pane */
+        header, nav, button, textarea, input, select, .toolbar, .stats-bar, .no-print, .focus-mode-toggle, .zoom-controls, .hidden-print { 
           display: none !important; 
         }
 
-        /* Enforce Preview Layout */
+        /* Ensure Preview Container allows flow */
         .preview-container {
           display: block !important;
           width: 100% !important;
@@ -208,29 +214,39 @@
           background: white !important;
           padding: 0 !important;
           margin: 0 !important;
+          position: static !important;
         }
 
-        /* Reset paper shadow/margins for print */
+        /* Paper styles for print */
+        /* Remove shadows, reset margins, use padding for margins */
         .paper-preview {
           box-shadow: none !important;
           margin: 0 !important;
-          /* Manually apply the margin here because @page margin is 0 */
-          padding: 20mm !important; 
+          padding: 20mm !important; /* This acts as the page margin */
           width: 100% !important;
           max-width: none !important;
           min-height: 0 !important;
-          transform: none !important; /* Disable zoom for print */
+          transform: none !important; /* Disable zoom */
+          background: white !important;
         }
 
         .markdown-body {
           width: 100% !important;
           max-width: none !important;
-          padding: 0 !important;
-          margin: 0 !important;
           color: #000000 !important;
         }
         
-        /* Ensure footer sticks to bottom or flows naturally */
+        /* Prevent awkward breaks */
+        h1, h2, h3 { 
+          break-after: avoid; 
+          page-break-after: avoid; 
+        }
+        
+        p, pre, blockquote, table, img, ul, ol {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        
         .doc-footer {
           break-inside: avoid;
         }
