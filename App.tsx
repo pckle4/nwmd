@@ -241,7 +241,7 @@ export default function App() {
       <div className="doc-footer">
         <div className="footer-badge bg-pink-50 text-pink-700 border border-pink-100">
            <span>Made with love by</span>
-           <strong>MarkdownPro</strong>
+           <strong>NoWhile</strong>
            <Icons.Heart />
         </div>
         <div className="flex gap-2">
@@ -434,7 +434,7 @@ export default function App() {
 
         {/* Preview Pane (Right on Desktop) */}
         <div className={`
-          preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300
+          preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300 p-8 pb-20
           ${view === EditorView.EDIT ? 'hidden lg:block' : 'block'}
         `}>
            <div className={`
