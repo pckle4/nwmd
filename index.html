@@ -167,15 +167,22 @@
         min-height: 297mm;
         box-sizing: border-box;
       }
+      
+      /* Responsive Optimization: Reduce padding on smaller screens to maximize content area */
+      @media screen and (max-width: 1024px) {
+        .paper-preview {
+          padding: 12mm;
+        }
+      }
 
       .paper-a4 {
-        width: 210mm;
-        min-height: 297mm;
+        width: 100%;
+        max-width: 210mm;
       }
 
       .paper-letter {
-        width: 215.9mm; /* 8.5in */
-        min-height: 279.4mm; /* 11in */
+        width: 100%;
+        max-width: 215.9mm; /* 8.5in */
       }
 
       /* PRINT STYLES */
@@ -226,6 +233,7 @@
           margin: 0 !important;
           padding: 0 !important;
           width: 100% !important;
+          max-width: none !important;
           min-height: 0 !important;
         }
 
