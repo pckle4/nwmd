@@ -434,7 +434,7 @@ export default function App() {
 
         {/* Preview Pane (Right on Desktop) */}
         <div className={`
-          preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300 p-8 pb-20
+          preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300 p-4 lg:p-8 pb-20
           ${view === EditorView.EDIT ? 'hidden lg:block' : 'block'}
         `}>
            <div className={`
