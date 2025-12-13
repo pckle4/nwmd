@@ -10,10 +10,15 @@ export default function App() {
   const [customCss, setCustomCss] = useState<string>('');
   const [docName, setDocName] = useState<string>('Untitled Document');
   
-  // Modals state
-  const [activeModal, setActiveModal] = useState<'none' | 'link' | 'table' | 'css'>('none');
+  // Modals & Tools state
+  const [activeModal, setActiveModal] = useState<'none' | 'link' | 'table' | 'css' | 'toc'>('none');
   const [linkData, setLinkData] = useState({ text: '', url: '' });
   const [tableData, setTableData] = useState({ rows: 3, cols: 3 });
+  
+  // New Features State
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [targetWordCount, setTargetWordCount] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [view, setView] = useState<EditorView>(EditorView.SPLIT);
   const [theme, setTheme] = useState<Theme>('light');
@@ -24,12 +29,13 @@ export default function App() {
   const [readingTime, setReadingTime] = useState(0);
   const [notification, setNotification] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [toc, setToc] = useState<string[]>([]);
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // Update Page Title for PDF "Save As"
   useEffect(() => {
-    document.title = docName || 'Markdown to PDF Pro';
+    document.title = docName || 'NoWhile Editor';
   }, [docName]);
 
   // Debounced parsing & Stats
@@ -43,7 +49,12 @@ export default function App() {
         const text = markdown.trim();
         const words = text ? text.split(/\s+/).length : 0;
         setWordCount(words);
-        setReadingTime(Math.ceil(words / 200)); // Approx 200 wpm
+        setReadingTime(Math.ceil(words / 200)); 
+        
+        // Generate TOC
+        const headers = markdown.match(/^#{1,3} .+/gm) || [];
+        setToc(headers.map(h => h.replace(/#/g, '').trim()));
+        
       } catch (e) {
         console.error("Parse error", e);
       }
@@ -61,7 +72,7 @@ export default function App() {
       }
     };
     window.addEventListener('resize', handleResize);
-    handleResize(); // Init
+    handleResize(); 
     return () => window.removeEventListener('resize', handleResize);
   }, []); 
 
@@ -81,14 +92,44 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    // Sanitize filename
-    const safeName = (docName || 'document').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const safeName = (docName || 'nowhile-doc').replace(/[^a-z0-9]/gi, '-').toLowerCase();
     a.download = `${safeName}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showNotification("Markdown file downloaded");
+  };
+  
+  const handleDownloadHTML = () => {
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = (docName || 'nowhile-doc').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    a.download = `${safeName}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showNotification("HTML file downloaded");
+  };
+
+  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result;
+      if (typeof content === 'string') {
+        setMarkdown(content);
+        showNotification("File imported successfully");
+      }
+    };
+    reader.readAsText(file);
+    // Reset input
+    event.target.value = ''; 
   };
 
   const handleCopyMarkdown = async () => {
@@ -100,9 +141,13 @@ export default function App() {
     }
   };
 
-  const handleClear = () => {
-    if (window.confirm("Are you sure you want to clear the editor?")) {
-      setMarkdown("");
+  const handleReset = () => {
+    if (window.confirm("Reset everything to default? This cannot be undone.")) {
+      setMarkdown(SAMPLE_MARKDOWN);
+      setDocName("Untitled Document");
+      setCustomCss("");
+      setTargetWordCount(0);
+      setZoomLevel(1);
     }
   };
   
@@ -111,7 +156,7 @@ export default function App() {
     if (!templateName) return;
     
     if (markdown.length > 50 && !window.confirm("Replace current content with template?")) {
-      e.target.value = ""; // Reset
+      e.target.value = ""; 
       return;
     }
     
@@ -132,16 +177,16 @@ export default function App() {
     
     setMarkdown(newText);
     
-    // Defer selection update
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, end + before.length);
     }, 0);
   };
   
-  const insertDateTime = () => {
-    insertText(new Date().toLocaleString());
-  };
+  const insertDateTime = () => insertText(new Date().toLocaleString());
+  const insertColor = (color: string) => insertText(`<span style="color:${color}">`, `</span>`);
+  const insertHighlight = () => insertText('<mark>', '</mark>');
+  const insertAlign = (align: 'left' | 'center' | 'right') => insertText(`<div align="${align}">\n`, '\n</div>');
 
   // --- Modal Logic ---
 
@@ -230,19 +275,30 @@ export default function App() {
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
     return (
-      <div className="doc-footer">
-        <div className="footer-badge bg-pink-50 text-pink-700 border border-pink-100 print-only">
-           <span>Made with love by</span>
-           <strong>NoWhile</strong>
-           <Icons.Heart />
+      <div className="doc-footer flex flex-col items-center justify-center gap-3 mt-12 pt-6 border-t border-dashed border-gray-300 print:flex">
+        {/* Top Row: Branding & Title */}
+        <div className="flex items-center gap-3">
+          <div className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100 flex items-center gap-1.5 shadow-sm">
+            <Icons.Globe />
+            <span className="font-bold text-xs uppercase tracking-wider">NoWhile</span>
+          </div>
+          <div className="px-3 py-1 bg-white text-gray-700 rounded-full border border-gray-200 flex items-center gap-1.5 shadow-sm">
+            <Icons.User />
+            <span className="font-semibold text-xs max-w-[150px] truncate">{docName || 'Untitled'}</span>
+          </div>
         </div>
-        <div className="flex gap-2">
-           <div className="footer-badge bg-blue-50 text-blue-700 border border-blue-100">
-             {dateStr}
-           </div>
-           <div className="footer-badge bg-gray-50 text-gray-600 border border-gray-200 font-mono">
-             {timeStr}
-           </div>
+        
+        {/* Bottom Row: Metadata */}
+        <div className="flex items-center gap-6 text-[10px] text-gray-400 font-mono uppercase tracking-tight">
+          <span className="flex items-center gap-1">
+            <Icons.Calendar /> {dateStr}
+          </span>
+          <span className="flex items-center gap-1">
+            <Icons.Clock /> {timeStr}
+          </span>
+          <span className="flex items-center gap-1">
+            <Icons.Hash /> {wordCount} words
+          </span>
         </div>
       </div>
     );
@@ -252,6 +308,7 @@ export default function App() {
     <div className={`flex flex-col h-screen ${getThemeClasses()} transition-colors duration-300`}>
       {/* Inject Custom CSS */}
       <style dangerouslySetInnerHTML={{ __html: customCss }} />
+      <input type="file" ref={fileInputRef} className="hidden" accept=".md,.txt" onChange={handleImportFile} />
 
       {/* --- HEADER --- */}
       {!isFocused && (
@@ -260,19 +317,19 @@ export default function App() {
         ${theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-900 border-gray-700'}
       `}>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-500/30">
-            <Icons.File />
+          <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg text-white shadow-lg shadow-indigo-500/30">
+            <Icons.Globe />
           </div>
           <div className="flex flex-col">
             <input 
               type="text" 
               value={docName}
               onChange={(e) => setDocName(e.target.value)}
-              className={`text-lg font-bold tracking-tight leading-none focus:outline-none focus:border-b border-transparent transition-all w-48 sm:w-64 bg-transparent p-0.5 ${theme === 'light' ? 'focus:border-blue-500 hover:border-gray-300' : 'focus:border-blue-400 hover:border-gray-600'}`}
+              className={`text-lg font-bold tracking-tight leading-none focus:outline-none focus:border-b border-transparent transition-all w-48 sm:w-64 bg-transparent p-0.5 ${theme === 'light' ? 'focus:border-indigo-500 hover:border-gray-300' : 'focus:border-indigo-400 hover:border-gray-600'}`}
               placeholder="Document Name"
             />
-            <p className={`text-xs font-medium mt-1 ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-              Markdown to PDF Pro
+            <p className={`text-xs font-medium mt-1 uppercase tracking-wider ${theme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>
+              NoWhile Editor
             </p>
           </div>
         </div>
@@ -288,17 +345,25 @@ export default function App() {
 
           <div className="w-px h-6 bg-gray-300 mx-2 hidden md:block"></div>
           
-          <button onClick={() => setIsFocused(true)} className="p-2 text-gray-500 hover:text-blue-500 transition-colors hidden md:block" title="Focus Mode">
+          <button onClick={() => setIsFocused(true)} className="p-2 text-gray-500 hover:text-indigo-500 transition-colors hidden md:block" title="Focus Mode">
             <Icons.Maximize />
           </button>
+          
+          {/* Import/Export */}
+          <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:text-indigo-500 transition-colors" title="Import File">
+            <Icons.Upload />
+          </button>
+          <button onClick={handleDownloadHTML} className="p-2 text-gray-500 hover:text-indigo-500 transition-colors" title="Export HTML">
+            <Icons.Html />
+          </button>
 
-          <button onClick={handleCopyMarkdown} className="p-2 text-gray-500 hover:text-blue-500 transition-colors" title="Copy Markdown">
+          <button onClick={handleCopyMarkdown} className="p-2 text-gray-500 hover:text-indigo-500 transition-colors" title="Copy Markdown">
             <Icons.Copy />
           </button>
           <button onClick={handleDownloadMD} className="p-2 text-gray-500 hover:text-green-500 transition-colors" title="Download .md">
             <Icons.Download />
           </button>
-          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-md transition-all active:scale-95 ml-2">
+          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-md transition-all active:scale-95 ml-2">
             <Icons.Print />
             <span className="hidden sm:inline">Print PDF</span>
           </button>
@@ -324,12 +389,25 @@ export default function App() {
           <button onClick={() => insertText('*', '*')} className={`p-1.5 rounded hover:bg-black/5 italic w-8 text-center ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>I</button>
           <button onClick={() => insertText('~~', '~~')} className={`p-1.5 rounded hover:bg-black/5 line-through w-8 text-center ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>S</button>
           
+          {/* Color & Highlight */}
+          <button onClick={insertHighlight} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Highlight"><Icons.Highlight /></button>
+          <button onClick={() => insertColor('red')} className={`p-1.5 rounded hover:bg-black/5 text-red-500`} title="Red Text"><Icons.Color /></button>
+          <button onClick={() => insertColor('blue')} className={`p-1.5 rounded hover:bg-black/5 text-blue-500`} title="Blue Text"><Icons.Color /></button>
+          
+          <div className="w-px h-4 bg-gray-300 mx-1"></div>
+
+          {/* Align */}
+          <button onClick={() => insertAlign('left')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}><Icons.AlignLeft /></button>
+          <button onClick={() => insertAlign('center')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}><Icons.Center /></button>
+          <button onClick={() => insertAlign('right')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}><Icons.AlignRight /></button>
+
           <div className="w-px h-4 bg-gray-300 mx-1"></div>
 
           {/* Inserts */}
           <button onClick={openLinkModal} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Link"><Icons.Link /></button>
           <button onClick={() => insertText('\n---\n')} className={`p-1.5 rounded hover:bg-black/5 font-bold text-xs w-8 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Horizontal Rule">—</button>
-          <button onClick={() => insertText('\n<div align="center">\n', '\n</div>\n')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Center Align"><Icons.Center /></button>
+          <button onClick={() => insertText('✅ ')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>✅</button>
+          <button onClick={() => insertText('⚠️ ')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>⚠️</button>
           
           <div className="w-px h-4 bg-gray-300 mx-1"></div>
           
@@ -356,8 +434,8 @@ export default function App() {
           {/* Paper Size */}
           <div className="flex items-center gap-1 hidden sm:flex">
              <span className={`text-[10px] uppercase font-bold ${theme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>Size</span>
-             <button onClick={() => setPaperSize('a4')} className={`text-xs px-2 py-1 rounded border ${paperSize === 'a4' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'border-transparent text-gray-500'}`}>A4</button>
-             <button onClick={() => setPaperSize('letter')} className={`text-xs px-2 py-1 rounded border ${paperSize === 'letter' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'border-transparent text-gray-500'}`}>Let</button>
+             <button onClick={() => setPaperSize('a4')} className={`text-xs px-2 py-1 rounded border ${paperSize === 'a4' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'border-transparent text-gray-500'}`}>A4</button>
+             <button onClick={() => setPaperSize('letter')} className={`text-xs px-2 py-1 rounded border ${paperSize === 'letter' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'border-transparent text-gray-500'}`}>Let</button>
           </div>
 
           {/* Configs */}
@@ -388,14 +466,14 @@ export default function App() {
           {/* Custom CSS Button */}
           <button 
              onClick={() => setActiveModal('css')} 
-             className={`p-1.5 rounded border ${theme === 'light' ? 'bg-white border-gray-300 text-gray-600 hover:text-blue-600' : 'bg-gray-700 border-gray-600 text-gray-300 hover:text-white'}`}
+             className={`p-1.5 rounded border ${theme === 'light' ? 'bg-white border-gray-300 text-gray-600 hover:text-indigo-600' : 'bg-gray-700 border-gray-600 text-gray-300 hover:text-white'}`}
              title="Custom CSS"
           >
              <Icons.CodeBrackets />
           </button>
 
-          <button onClick={handleClear} className="text-red-500 hover:text-red-600 p-1 rounded hover:bg-red-50" title="Clear All">
-            <Icons.Trash />
+          <button onClick={handleReset} className="text-red-500 hover:text-red-600 p-1 rounded hover:bg-red-50" title="Reset App">
+            <Icons.Refresh />
           </button>
         </div>
       </div>
@@ -420,10 +498,25 @@ export default function App() {
           />
           {/* Stats Bar */}
           {!isFocused && (
-          <div className={`px-4 py-2 border-t text-xs flex justify-between ${theme === 'light' ? 'border-gray-200 text-gray-500' : 'border-gray-700 text-gray-400'}`}>
-             <span className="flex gap-3">
-               <span>{markdown.length} chars</span>
+          <div className={`px-4 py-2 border-t text-xs flex justify-between items-center ${theme === 'light' ? 'border-gray-200 text-gray-500' : 'border-gray-700 text-gray-400'}`}>
+             <span className="flex gap-4 items-center">
                <span>{wordCount} words</span>
+               <div className="h-4 w-px bg-current opacity-20"></div>
+               <div className="flex items-center gap-2" title="Target Word Count">
+                 <Icons.Target />
+                 <input 
+                   type="number" 
+                   value={targetWordCount} 
+                   onChange={e => setTargetWordCount(Number(e.target.value))}
+                   className="w-16 bg-transparent border-b border-gray-300 focus:border-indigo-500 outline-none text-center"
+                   placeholder="Target"
+                 />
+                 {targetWordCount > 0 && (
+                   <span className="text-[10px] font-bold">
+                     {Math.min(100, Math.round((wordCount / targetWordCount) * 100))}%
+                   </span>
+                 )}
+               </div>
              </span>
              <span>~{readingTime} min read</span>
           </div>
@@ -435,10 +528,17 @@ export default function App() {
           preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300 p-4 lg:p-8 pb-20
           ${view === EditorView.EDIT ? 'hidden lg:block' : 'block'}
         `}>
+           {/* Zoom Controls */}
+           <div className="zoom-controls absolute top-4 right-8 flex gap-2 z-10 opacity-0 hover:opacity-100 transition-opacity">
+              <button onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.1))} className="p-1 bg-white rounded shadow text-gray-600 hover:text-indigo-600"><Icons.ZoomOut /></button>
+              <span className="bg-white px-2 py-1 rounded shadow text-xs font-mono">{Math.round(zoomLevel * 100)}%</span>
+              <button onClick={() => setZoomLevel(z => Math.min(1.5, z + 0.1))} className="p-1 bg-white rounded shadow text-gray-600 hover:text-indigo-600"><Icons.ZoomIn /></button>
+           </div>
+
            <div className={`
               paper-preview ${paperSize === 'a4' ? 'paper-a4' : 'paper-letter'}
               ${getContainerFontClass()} ${getContainerSizeClass()}
-           `}>
+           `} style={{ transform: `scale(${zoomLevel})` }}>
               <div 
                  className="markdown-body"
                  dangerouslySetInnerHTML={{ __html: html }} 
@@ -464,7 +564,7 @@ export default function App() {
         <div className="lg:hidden absolute bottom-6 right-6 flex gap-2 no-print z-50">
           <button 
             onClick={() => setView(view === EditorView.EDIT ? EditorView.PREVIEW : EditorView.EDIT)}
-            className="p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:scale-95 transition-transform"
+            className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-transform"
           >
             {view === EditorView.EDIT ? <Icons.Eye /> : <Icons.Edit />}
           </button>
@@ -566,7 +666,7 @@ export default function App() {
                    <textarea 
                      value={customCss}
                      onChange={(e) => setCustomCss(e.target.value)}
-                     className={`flex-1 w-full p-3 font-mono text-xs border rounded-md resize-none focus:ring-2 focus:ring-blue-500 outline-none min-h-[200px] ${theme === 'light' ? 'bg-gray-50 border-gray-300 text-gray-800' : 'bg-gray-900 border-gray-600 text-gray-200'}`}
+                     className={`flex-1 w-full p-3 font-mono text-xs border rounded-md resize-none focus:ring-2 focus:ring-indigo-500 outline-none min-h-[200px] ${theme === 'light' ? 'bg-gray-50 border-gray-300 text-gray-800' : 'bg-gray-900 border-gray-600 text-gray-200'}`}
                      placeholder={`.markdown-body h1 { \n  color: #2563eb; \n  text-transform: uppercase;\n}`}
                      spellCheck={false}
                    />
@@ -586,7 +686,7 @@ export default function App() {
                    else if (activeModal === 'table') confirmInsertTable();
                    else setActiveModal('none'); // Save for CSS is implicit
                  }} 
-                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
                >
                  {activeModal === 'css' ? 'Save & Close' : 'Insert'}
                </button>
