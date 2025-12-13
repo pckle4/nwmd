@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Markdown to PDF Pro</title>
+    <title>NoWhile Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,33 +136,6 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
       }
 
-      /* Custom Footer Styles */
-      .doc-footer {
-        margin-top: 4rem;
-        padding-top: 2rem;
-        border-top: 2px solid #e5e7eb;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-family: var(--font-sans);
-        font-size: 0.8rem;
-        color: #6b7280;
-      }
-      
-      .footer-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.3rem 0.6rem;
-        border-radius: 0.3rem;
-        font-weight: 500;
-        gap: 0.4rem;
-      }
-      
-      /* Print-only visibility control */
-      .print-only {
-        display: none !important;
-      }
-
       /* Paper Simulation Styles */
       .paper-preview {
         background-color: white;
@@ -171,9 +144,11 @@
         padding: 25mm; /* Standard margin */
         min-height: 297mm;
         box-sizing: border-box;
+        transition: transform 0.2s ease;
+        transform-origin: top center;
       }
       
-      /* Responsive Optimization: Reduce padding on smaller screens to maximize content area */
+      /* Responsive Optimization: Reduce padding on smaller screens */
       @media screen and (max-width: 1024px) {
         .paper-preview {
           padding: 12mm;
@@ -189,51 +164,37 @@
         width: 100%;
         max-width: 215.9mm; /* 8.5in */
       }
+      
+      /* Print-only visibility control */
+      .print-only {
+        display: none !important;
+      }
 
       /* PRINT STYLES */
       @media print {
         @page {
-          margin: 20mm; /* Custom margins: 20mm (approx 0.8in) */
+          /* CRITICAL: margin 0 hides browser header/footer/url */
+          margin: 0 !important; 
           size: auto;
         }
         
-        .print-only {
-          display: inline-flex !important;
-        }
-        
-        /* High Quality Printing Fixes */
         html, body {
           background-color: white !important;
-          color: #000000 !important; /* Force pure black for sharpness */
+          color: #000000 !important;
           height: auto !important;
           overflow: visible !important;
           
-          /* Improve text rendering */
+          /* Optimization for sharp text */
           text-rendering: geometricPrecision !important;
           -webkit-font-smoothing: antialiased !important;
-          -moz-osx-font-smoothing: grayscale !important;
         }
         
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          
-          /* Prevent blurriness caused by transforms */
-          transform: none !important;
-          box-shadow: none !important;
-          text-shadow: none !important;
-          filter: none !important;
-          backdrop-filter: none !important;
-        }
-
-        #root, main {
-          height: auto !important;
-          overflow: visible !important;
-          display: block !important;
+        .print-only {
+          display: flex !important;
         }
 
         /* Hide UI */
-        header, nav, button, textarea, .toolbar, .stats-bar, .no-print, .focus-mode-toggle { 
+        header, nav, button, textarea, .toolbar, .stats-bar, .no-print, .focus-mode-toggle, .zoom-controls { 
           display: none !important; 
         }
 
@@ -253,10 +214,12 @@
         .paper-preview {
           box-shadow: none !important;
           margin: 0 !important;
-          padding: 0 !important;
+          /* Manually apply the margin here because @page margin is 0 */
+          padding: 20mm !important; 
           width: 100% !important;
           max-width: none !important;
           min-height: 0 !important;
+          transform: none !important; /* Disable zoom for print */
         }
 
         .markdown-body {
@@ -264,20 +227,12 @@
           max-width: none !important;
           padding: 0 !important;
           margin: 0 !important;
-          color: #000000 !important; /* Force pure black text */
+          color: #000000 !important;
         }
         
-        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
-           color: #000000 !important;
-        }
-        
-        pre, blockquote, table, img, .doc-footer {
+        /* Ensure footer sticks to bottom or flows naturally */
+        .doc-footer {
           break-inside: avoid;
-        }
-        
-        img {
-          /* Improve image quality in print */
-          image-rendering: -webkit-optimize-contrast; 
         }
       }
     </style>
