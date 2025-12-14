@@ -11,7 +11,7 @@ export default function App() {
   const [docName, setDocName] = useState<string>('Untitled Document');
   
   // Modals & Tools state
-  const [activeModal, setActiveModal] = useState<'none' | 'link' | 'table' | 'css' | 'toc'>('none');
+  const [activeModal, setActiveModal] = useState<'none' | 'link' | 'table' | 'css' | 'blocks'>('none');
   const [linkData, setLinkData] = useState({ text: '', url: '' });
   const [tableData, setTableData] = useState({ rows: 3, cols: 3 });
   
@@ -29,9 +29,9 @@ export default function App() {
   const [readingTime, setReadingTime] = useState(0);
   const [notification, setNotification] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const [toc, setToc] = useState<string[]>([]);
-
+  
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // Update Page Title for PDF "Save As"
   useEffect(() => {
@@ -50,11 +50,6 @@ export default function App() {
         const words = text ? text.split(/\s+/).length : 0;
         setWordCount(words);
         setReadingTime(Math.ceil(words / 200)); 
-        
-        // Generate TOC
-        const headers = markdown.match(/^#{1,3} .+/gm) || [];
-        setToc(headers.map(h => h.replace(/#/g, '').trim()));
-        
       } catch (e) {
         console.error("Parse error", e);
       }
@@ -75,6 +70,21 @@ export default function App() {
     handleResize(); 
     return () => window.removeEventListener('resize', handleResize);
   }, []); 
+
+  // --- Synchronized Scrolling ---
+  const handleEditorScroll = () => {
+    if (!textAreaRef.current || !previewRef.current) return;
+    
+    const editor = textAreaRef.current;
+    const preview = previewRef.current;
+    
+    // Calculate percentage
+    const percentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+    
+    // Apply to preview
+    // Note: We don't use behavior: 'smooth' here to avoid lag/stickiness during active scrolling
+    preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+  };
 
   const showNotification = (msg: string, type: 'success' | 'error' = 'success') => {
     setNotification({ msg, type });
@@ -170,6 +180,9 @@ export default function App() {
     const textarea = textAreaRef.current;
     if (!textarea) return;
 
+    // CAPTURE SCROLL POSITION
+    const scrollTop = textarea.scrollTop;
+    
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = markdown.substring(start, end);
@@ -177,16 +190,38 @@ export default function App() {
     
     setMarkdown(newText);
     
+    // Restore selection and scroll immediately
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, end + before.length);
+      // RESTORE SCROLL POSITION
+      textarea.scrollTop = scrollTop;
     }, 0);
   };
   
   const insertDateTime = () => insertText(new Date().toLocaleString());
   const insertColor = (color: string) => insertText(`<span style="color:${color}">`, `</span>`);
+  const insertBadge = (color: 'blue' | 'green' | 'red') => insertText(`<span class="badge badge-${color}">`, `</span>`);
   const insertHighlight = () => insertText('<mark>', '</mark>');
   const insertAlign = (align: 'left' | 'center' | 'right') => insertText(`<div align="${align}">\n`, '\n</div>');
+
+  // --- Readymade Blocks ---
+  const insertBlock = (type: string) => {
+    switch(type) {
+      case 'note': insertText('\n> [!NOTE]\n> This is a note alert.\n'); break;
+      case 'tip': insertText('\n> [!TIP]\n> This is a helpful tip.\n'); break;
+      case 'warning': insertText('\n> [!WARNING]\n> This is a warning!\n'); break;
+      case 'caution': insertText('\n> [!CAUTION]\n> Use with caution.\n'); break;
+      case 'details': insertText('\n<details>\n<summary>Click to expand</summary>\n\nHidden content goes here.\n\n</details>\n'); break;
+      case 'pricing': insertText('\n| Plan | Price | Features |\n| :--- | :---: | :--- |\n| Basic | $10 | ✅ Support |\n| Pro | $29 | ✅ All Features |\n'); break;
+      case 'features': insertText('\n- ✅ **Feature A**: Description\n- ✅ **Feature B**: Description\n- ⚠️ **Feature C**: Beta\n'); break;
+      case 'footnote': insertText('[^1]', '\n\n[^1]: This is the footnote text.'); break;
+      case 'deflist': insertText('\nTerm 1\n:   Definition 1\n\nTerm 2\n:   Definition 2\n'); break;
+      case 'image': insertText('![Alt Text](https://placehold.co/600x400 "Image Title")'); break;
+      case 'math': insertText('\n$$\nE = mc^2\n$$\n'); break;
+    }
+    setActiveModal('none');
+  };
 
   // --- Modal Logic ---
 
@@ -388,11 +423,15 @@ export default function App() {
           <button onClick={() => insertText('**', '**')} className={`p-1.5 rounded hover:bg-black/5 font-bold w-8 text-center ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>B</button>
           <button onClick={() => insertText('*', '*')} className={`p-1.5 rounded hover:bg-black/5 italic w-8 text-center ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>I</button>
           <button onClick={() => insertText('~~', '~~')} className={`p-1.5 rounded hover:bg-black/5 line-through w-8 text-center ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>S</button>
+          <button onClick={() => insertText('<u>', '</u>')} className={`p-1.5 rounded hover:bg-black/5 underline w-8 text-center ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>U</button>
           
+          {/* Sub/Sup */}
+          <button onClick={() => insertText('<sub>', '</sub>')} className={`p-1.5 rounded hover:bg-black/5 w-8 text-center text-xs ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>x₂</button>
+          <button onClick={() => insertText('<sup>', '</sup>')} className={`p-1.5 rounded hover:bg-black/5 w-8 text-center text-xs ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>x²</button>
+
           {/* Color & Highlight */}
           <button onClick={insertHighlight} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Highlight"><Icons.Highlight /></button>
           <button onClick={() => insertColor('red')} className={`p-1.5 rounded hover:bg-black/5 text-red-500`} title="Red Text"><Icons.Color /></button>
-          <button onClick={() => insertColor('blue')} className={`p-1.5 rounded hover:bg-black/5 text-blue-500`} title="Blue Text"><Icons.Color /></button>
           
           <div className="w-px h-4 bg-gray-300 mx-1"></div>
 
@@ -402,12 +441,21 @@ export default function App() {
           <button onClick={() => insertAlign('right')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}><Icons.AlignRight /></button>
 
           <div className="w-px h-4 bg-gray-300 mx-1"></div>
+          
+          {/* Tech */}
+          <button onClick={() => insertText('<kbd>', '</kbd>')} className={`p-1.5 rounded hover:bg-black/5 text-xs font-mono border ${theme !== 'light' && 'text-gray-300 hover:bg-white/10 border-gray-600'}`} title="Keyboard Input">Kbd</button>
 
           {/* Inserts */}
           <button onClick={openLinkModal} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Link"><Icons.Link /></button>
-          <button onClick={() => insertText('\n---\n')} className={`p-1.5 rounded hover:bg-black/5 font-bold text-xs w-8 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Horizontal Rule">—</button>
           <button onClick={() => insertText('✅ ')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>✅</button>
-          <button onClick={() => insertText('⚠️ ')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`}>⚠️</button>
+          
+          {/* Readymade Blocks Button */}
+          <button 
+            onClick={() => setActiveModal('blocks')} 
+            className={`px-3 py-1 rounded bg-indigo-100 text-indigo-700 text-xs font-bold hover:bg-indigo-200 transition-colors ml-2 ${theme === 'dark' && 'bg-indigo-900 text-indigo-200 hover:bg-indigo-800'}`}
+          >
+             + Blocks
+          </button>
           
           <div className="w-px h-4 bg-gray-300 mx-1"></div>
           
@@ -416,10 +464,6 @@ export default function App() {
           <button onClick={() => insertText('\n```javascript\n', '\n```\n')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Code Block"><Icons.Code /></button>
           <button onClick={() => insertText('\n- [ ] ')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Checkbox List"><Icons.List /></button>
           <button onClick={() => insertText('> ')} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Blockquote"><Icons.Quote /></button>
-          
-          <div className="w-px h-4 bg-gray-300 mx-1"></div>
-          
-          <button onClick={insertDateTime} className={`p-1.5 rounded hover:bg-black/5 ${theme !== 'light' && 'text-gray-300 hover:bg-white/10'}`} title="Insert Date/Time"><Icons.Clock /></button>
         </div>
 
         <div className="flex items-center gap-3 ml-auto">
@@ -490,6 +534,7 @@ export default function App() {
         `}>
           <textarea
             ref={textAreaRef}
+            onScroll={handleEditorScroll}
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
             className={`flex-1 w-full p-6 resize-none focus:outline-none bg-transparent font-mono text-sm leading-relaxed ${theme === 'light' ? 'text-gray-800' : 'text-gray-200'}`}
@@ -524,10 +569,13 @@ export default function App() {
         </div>
 
         {/* Preview Pane (Right on Desktop) */}
-        <div className={`
-          preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300 p-4 lg:p-8 pb-20
-          ${view === EditorView.EDIT ? 'hidden lg:block' : 'block'}
-        `}>
+        <div 
+          ref={previewRef}
+          className={`
+            preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300 p-4 lg:p-8 pb-20
+            ${view === EditorView.EDIT ? 'hidden lg:block' : 'block'}
+          `}
+        >
            {/* Zoom Controls */}
            <div className="zoom-controls absolute top-4 right-8 flex gap-2 z-10 opacity-0 hover:opacity-100 transition-opacity">
               <button onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.1))} className="p-1 bg-white rounded shadow text-gray-600 hover:text-indigo-600"><Icons.ZoomOut /></button>
@@ -591,7 +639,7 @@ export default function App() {
             {/* Modal Header */}
             <div className={`p-4 border-b flex justify-between items-center ${theme === 'light' ? 'border-gray-200' : 'border-gray-700'}`}>
                <h3 className="font-bold capitalize">
-                  {activeModal === 'css' ? 'Custom CSS' : `Insert ${activeModal}`}
+                  {activeModal === 'css' ? 'Custom CSS' : activeModal === 'blocks' ? 'Insert Block' : `Insert ${activeModal}`}
                </h3>
                <button onClick={() => setActiveModal('none')} className="hover:opacity-70"><Icons.X /></button>
             </div>
@@ -672,6 +720,82 @@ export default function App() {
                    />
                  </>
                )}
+               
+               {/* --- BLOCKS MODAL --- */}
+               {activeModal === 'blocks' && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <button onClick={() => insertBlock('note')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-blue-50 hover:border-blue-200 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-blue-500 font-bold text-lg">ℹ️</span>
+                       <div>
+                         <div className="text-sm font-bold">Note Alert</div>
+                         <div className="text-xs opacity-60">Blue info box</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('tip')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-green-50 hover:border-green-200 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-green-500 font-bold text-lg">💡</span>
+                       <div>
+                         <div className="text-sm font-bold">Tip Alert</div>
+                         <div className="text-xs opacity-60">Green success box</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('warning')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-yellow-50 hover:border-yellow-200 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-yellow-500 font-bold text-lg">⚠️</span>
+                       <div>
+                         <div className="text-sm font-bold">Warning Alert</div>
+                         <div className="text-xs opacity-60">Yellow warning box</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('caution')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-red-50 hover:border-red-200 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-red-500 font-bold text-lg">🛑</span>
+                       <div>
+                         <div className="text-sm font-bold">Caution Alert</div>
+                         <div className="text-xs opacity-60">Red critical box</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('details')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-gray-100 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-gray-500 font-bold text-lg">🔽</span>
+                       <div>
+                         <div className="text-sm font-bold">Collapsible</div>
+                         <div className="text-xs opacity-60">Details & Summary</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('pricing')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-gray-100 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-gray-500 font-bold text-lg">💲</span>
+                       <div>
+                         <div className="text-sm font-bold">Pricing Table</div>
+                         <div className="text-xs opacity-60">Complex table layout</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('features')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-gray-100 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-gray-500 font-bold text-lg">✅</span>
+                       <div>
+                         <div className="text-sm font-bold">Feature List</div>
+                         <div className="text-xs opacity-60">Styled checkbox list</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('image')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-gray-100 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-gray-500 font-bold text-lg">🖼️</span>
+                       <div>
+                         <div className="text-sm font-bold">Image</div>
+                         <div className="text-xs opacity-60">Placeholder image</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBadge('blue')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-gray-100 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">New</span>
+                       <div>
+                         <div className="text-sm font-bold">Badge</div>
+                         <div className="text-xs opacity-60">Inline colored label</div>
+                       </div>
+                    </button>
+                    <button onClick={() => insertBlock('math')} className={`p-3 text-left rounded border flex items-center gap-2 hover:bg-gray-100 group ${theme === 'light' ? 'border-gray-200' : 'border-gray-700 hover:bg-gray-700'}`}>
+                       <span className="text-gray-500 font-bold text-lg">∑</span>
+                       <div>
+                         <div className="text-sm font-bold">Math Block</div>
+                         <div className="text-xs opacity-60">Latex syntax</div>
+                       </div>
+                    </button>
+                 </div>
+               )}
 
             </div>
 
@@ -680,16 +804,18 @@ export default function App() {
                <button onClick={() => setActiveModal('none')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${theme === 'light' ? 'text-gray-600 hover:bg-gray-200' : 'text-gray-300 hover:bg-gray-700'}`}>
                  Cancel
                </button>
-               <button 
-                 onClick={() => {
-                   if (activeModal === 'link') confirmInsertLink();
-                   else if (activeModal === 'table') confirmInsertTable();
-                   else setActiveModal('none'); // Save for CSS is implicit
-                 }} 
-                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
-               >
-                 {activeModal === 'css' ? 'Save & Close' : 'Insert'}
-               </button>
+               {activeModal !== 'blocks' && (
+                 <button 
+                   onClick={() => {
+                     if (activeModal === 'link') confirmInsertLink();
+                     else if (activeModal === 'table') confirmInsertTable();
+                     else setActiveModal('none');
+                   }} 
+                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+                 >
+                   {activeModal === 'css' ? 'Save & Close' : 'Insert'}
+                 </button>
+               )}
             </div>
           </div>
         </div>
