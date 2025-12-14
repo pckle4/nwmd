@@ -341,7 +341,7 @@ export default function App() {
   );
 
   return (
-    <div className={`flex flex-col h-[100dvh] ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : theme === 'midnight' ? 'bg-slate-900 text-slate-100' : 'bg-white text-gray-900'} transition-colors duration-300 overflow-hidden`}>
+    <div className={`flex flex-col min-h-[100dvh] lg:h-screen lg:overflow-hidden ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : theme === 'midnight' ? 'bg-slate-900 text-slate-100' : 'bg-white text-gray-900'} transition-colors duration-300`}>
       <style dangerouslySetInnerHTML={{ __html: customCss }} />
       <input type="file" ref={fileInputRef} className="hidden" accept=".md,.txt" onChange={handleImportFile} />
 
@@ -462,7 +462,7 @@ export default function App() {
       )}
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 flex overflow-hidden relative">
+      <main className="flex-1 flex flex-col lg:flex-row relative lg:overflow-hidden">
         {/* Editor */}
         <div className={`flex-1 flex flex-col border-r relative z-10 transition-all duration-300 no-print ${view === EditorView.PREVIEW ? 'hidden lg:flex' : 'flex'} ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : theme === 'midnight' ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
           <textarea
@@ -470,7 +470,7 @@ export default function App() {
             onScroll={handleEditorScroll}
             value={markdown}
             onChange={(e) => updateMarkdown(e.target.value)}
-            className={`flex-1 w-full p-6 resize-none focus:outline-none bg-transparent font-mono text-sm leading-relaxed ${theme === 'light' ? 'text-gray-800' : 'text-gray-200'}`}
+            className={`flex-1 w-full p-6 resize-none focus:outline-none bg-transparent font-mono text-sm leading-relaxed ${theme === 'light' ? 'text-gray-800' : 'text-gray-200'} h-[50vh] lg:h-auto`}
             placeholder="Type your markdown here..."
             spellCheck={false}
           />
@@ -492,7 +492,7 @@ export default function App() {
         </div>
 
         {/* Preview */}
-        <div ref={previewRef} className={`preview-container flex-1 bg-gray-200 overflow-auto relative transition-all duration-300 p-4 lg:p-8 pb-20 ${view === EditorView.EDIT ? 'hidden lg:block' : 'block'}`}>
+        <div ref={previewRef} className={`preview-container flex-1 bg-gray-200 relative transition-all duration-300 p-4 lg:p-8 pb-20 lg:overflow-auto ${view === EditorView.EDIT ? 'hidden lg:block' : 'block'}`}>
            <div className="zoom-controls absolute top-4 right-8 flex gap-2 z-10 opacity-0 hover:opacity-100 transition-opacity">
               <button onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.1))} className="p-1 bg-white rounded shadow text-gray-600 hover:text-indigo-600"><Icons.ZoomOut /></button>
               <span className="bg-white px-2 py-1 rounded shadow text-xs font-mono">{Math.round(zoomLevel * 100)}%</span>
@@ -517,7 +517,7 @@ export default function App() {
         {isFocused && <button onClick={() => setIsFocused(false)} className="focus-mode-toggle absolute top-4 right-4 p-2 bg-gray-800 text-white rounded-full opacity-50 hover:opacity-100 z-50 shadow-lg"><Icons.Minimize /></button>}
         
         {/* Mobile View Toggle */}
-        <div className="lg:hidden absolute bottom-24 right-6 flex gap-2 no-print z-40">
+        <div className="lg:hidden fixed bottom-24 right-6 flex gap-2 no-print z-40">
           <button onClick={() => setView(view === EditorView.EDIT ? EditorView.PREVIEW : EditorView.EDIT)} className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-transform">{view === EditorView.EDIT ? <Icons.Eye /> : <Icons.Edit />}</button>
         </div>
       </main>
