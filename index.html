@@ -53,7 +53,7 @@
       .text-size-base .markdown-body { font-size: 1rem; }
       .text-size-lg .markdown-body { font-size: 1.125rem; }
 
-      .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+      .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 {
         margin-top: 1.5em;
         margin-bottom: 0.6em;
         font-weight: 700;
@@ -63,6 +63,7 @@
       .markdown-body h1 { font-size: 2.25em; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.3em; letter-spacing: -0.025em; }
       .markdown-body h2 { font-size: 1.75em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
       .markdown-body h3 { font-size: 1.4em; }
+      .markdown-body h4 { font-size: 1.2em; }
       .markdown-body p { margin-bottom: 1.2em; }
       .markdown-body ul, .markdown-body ol { margin-bottom: 1.2em; padding-left: 1.6em; }
       .markdown-body ul { list-style-type: disc; }
@@ -85,6 +86,7 @@
         border-left: 4px solid;
         border-radius: 0.375rem;
         background-color: #f8fafc;
+        page-break-inside: avoid;
       }
       .markdown-alert-title {
         display: flex;
@@ -106,6 +108,73 @@
       .markdown-alert-caution { border-color: #ef4444; background-color: #fef2f2; }
       .markdown-alert-caution .markdown-alert-title { color: #b91c1c; }
       
+      /* Advanced Components */
+      .markdown-body .btn {
+        display: inline-block;
+        padding: 6px 16px;
+        background-color: #3b82f6;
+        color: white !important;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.9em;
+        transition: background 0.2s;
+        margin: 4px 0;
+      }
+      .markdown-body .btn:hover { background-color: #2563eb; }
+      
+      .markdown-body .progress-wrap {
+        background-color: #e5e7eb;
+        border-radius: 99px;
+        height: 12px;
+        width: 100%;
+        margin: 8px 0;
+        overflow: hidden;
+      }
+      .markdown-body .progress-bar {
+        background-color: #3b82f6;
+        height: 100%;
+        border-radius: 99px;
+      }
+
+      .markdown-body .timeline {
+        border-left: 2px solid #e5e7eb;
+        margin-left: 10px;
+        padding-left: 20px;
+        position: relative;
+      }
+      .markdown-body .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+      }
+      .markdown-body .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -26px;
+        top: 6px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #3b82f6;
+        border: 2px solid white;
+      }
+      
+      .markdown-body .file-tree ul {
+        list-style: none;
+        padding-left: 20px;
+      }
+      .markdown-body .file-tree li {
+        position: relative;
+      }
+      .markdown-body .file-tree li::before {
+        content: '📄';
+        margin-right: 8px;
+        font-size: 0.8em;
+      }
+      .markdown-body .file-tree li.folder::before {
+        content: '📁';
+      }
+
       /* Tech Tags */
       .markdown-body kbd {
         background-color: #f3f4f6;
@@ -116,6 +185,9 @@
         font-family: var(--font-mono);
         font-size: 0.85em;
         color: #374151;
+        display: inline-block;
+        min-width: 20px;
+        text-align: center;
       }
 
       .markdown-body .badge {
@@ -130,6 +202,8 @@
       .badge-blue { background: #dbeafe; color: #1e40af; }
       .badge-green { background: #d1fae5; color: #065f46; }
       .badge-red { background: #fee2e2; color: #991b1b; }
+      .badge-yellow { background: #fef3c7; color: #92400e; }
+      .badge-gray { background: #f3f4f6; color: #374151; }
 
       .markdown-body details {
         border: 1px solid #e5e7eb;
@@ -179,7 +253,16 @@
         width: 100%;
         margin-bottom: 1.5em;
         font-size: 0.95em;
+        display: table; /* Force table for print compatibility */
       }
+      /* Responsive Table Wrapper for Mobile */
+      @media screen and (max-width: 640px) {
+        .markdown-body table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+      
       .markdown-body th, .markdown-body td {
         border: 1px solid #d1d5db;
         padding: 0.75em;
@@ -245,13 +328,11 @@
       /* PRINT STYLES */
       @media print {
         @page {
-          /* CRITICAL: margin 0 hides browser header/footer/url */
           margin: 0 !important; 
           size: auto;
         }
         
         /* Global Print Resets */
-        /* Reset heights and overflows to allow pagination */
         html, body, #root, #root > div, main {
           background-color: white !important;
           color: #000000 !important;
@@ -265,18 +346,16 @@
           position: relative !important;
         }
         
-        /* Force text sharpness */
         html, body {
            text-rendering: geometricPrecision !important;
            -webkit-font-smoothing: antialiased !important;
         }
 
-        /* Hide all UI elements including editor pane */
-        header, nav, button, textarea, input, select, .toolbar, .stats-bar, .no-print, .focus-mode-toggle, .zoom-controls, .hidden-print { 
+        /* Hide all UI elements including editor pane & Site Footer */
+        header, nav, button, textarea, input, select, .toolbar, .stats-bar, .no-print, .focus-mode-toggle, .zoom-controls, .site-footer { 
           display: none !important; 
         }
 
-        /* Ensure Preview Container allows flow */
         .preview-container {
           display: block !important;
           width: 100% !important;
@@ -289,16 +368,14 @@
           position: static !important;
         }
 
-        /* Paper styles for print */
-        /* Remove shadows, reset margins, use padding for margins */
         .paper-preview {
           box-shadow: none !important;
           margin: 0 !important;
-          padding: 20mm !important; /* This acts as the page margin */
+          padding: 20mm !important;
           width: 100% !important;
           max-width: none !important;
           min-height: 0 !important;
-          transform: none !important; /* Disable zoom */
+          transform: none !important; 
           background: white !important;
         }
 
@@ -308,13 +385,12 @@
           color: #000000 !important;
         }
         
-        /* Prevent awkward breaks */
         h1, h2, h3 { 
           break-after: avoid; 
           page-break-after: avoid; 
         }
         
-        p, pre, blockquote, table, img, ul, ol, .markdown-alert, details {
+        p, pre, blockquote, table, img, ul, ol, .markdown-alert, details, .timeline-item {
           break-inside: avoid;
           page-break-inside: avoid;
         }
