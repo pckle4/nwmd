@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -16,12 +16,15 @@
         --font-mono: 'JetBrains Mono', monospace;
       }
 
-      /* Mobile Viewport Fixes */
+      /* Base Layout Settings */
       body {
         font-family: var(--font-sans);
-        height: 100vh; /* Fallback */
-        height: 100dvh; /* Dynamic viewport height for mobile */
-        /* overscroll-behavior-y removed to allow pull-to-refresh */
+        /* Allow body to grow and scroll natively on mobile */
+        min-height: 100dvh; 
+        margin: 0;
+        overflow-x: hidden;
+        /* Enable smooth scrolling and native touch feel */
+        -webkit-overflow-scrolling: touch;
       }
       
       /* Scrollbar Styling */
@@ -448,7 +451,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50 text-gray-900 overflow-hidden">
+  <body class="bg-gray-50 text-gray-900">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
