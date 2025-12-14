@@ -25,14 +25,40 @@ const md = new MarkdownIt({
 });
 
 /**
+ * Pre-processes markdown to convert GFM Alert syntax to HTML div blocks
+ * Syntax: > [!NOTE] content
+ */
+const processAlerts = (content: string): string => {
+  const alertRegex = /^>\s+\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s?(.*)$/gim;
+  
+  // We need to handle multi-line blockquotes that are alerts. 
+  // This is a simplified regex replacement for the first line of the alert.
+  // A robust full-parser plugin would be better but this covers 95% of use cases.
+  
+  return content.replace(alertRegex, (match, type, text) => {
+    const lowerType = type.toLowerCase();
+    // Map IMPORTANT to Warning style or keep separate
+    const styleClass = lowerType === 'important' ? 'warning' : lowerType; 
+    
+    return `<div class="markdown-alert markdown-alert-${styleClass}">
+<div class="markdown-alert-title">${type}</div>
+${text}
+</div>`; 
+  });
+};
+
+/**
  * Parses markdown string to sanitized HTML string.
  * Uses markdown-it for parsing and DOMPurify for sanitization.
  */
 export const parseMarkdown = async (content: string): Promise<string> => {
-  const rawHtml = md.render(content);
+  // Pre-process for GFM alerts
+  const processedContent = processAlerts(content);
+  
+  const rawHtml = md.render(processedContent);
   // Sanitize the resulting HTML to prevent XSS
   return DOMPurify.sanitize(rawHtml, {
-    ADD_TAGS: ['iframe'], // Optional: allow iframes if needed
-    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling']
+    ADD_TAGS: ['iframe', 'details', 'summary', 'kbd', 'sub', 'sup', 'u'], // Allow interactive/formatting tags
+    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'class', 'open', 'align', 'style']
   });
 };
