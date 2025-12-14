@@ -328,7 +328,7 @@ export default function App() {
           <div className="flex items-center gap-1">
              <span className="opacity-70">Powered by</span>
              <span className="font-semibold text-orange-500">Browser Native Print</span>
-             <span className="opacity-70"> - Thank you!</span>
+             
           </div>
        </div>
        <div className="flex items-center gap-4">
