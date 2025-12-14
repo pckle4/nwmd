@@ -341,7 +341,7 @@ export default function App() {
   );
 
   return (
-    <div className={`flex flex-col h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : theme === 'midnight' ? 'bg-slate-900 text-slate-100' : 'bg-white text-gray-900'} transition-colors duration-300 overflow-hidden`}>
+    <div className={`flex flex-col h-[100dvh] ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : theme === 'midnight' ? 'bg-slate-900 text-slate-100' : 'bg-white text-gray-900'} transition-colors duration-300 overflow-hidden`}>
       <style dangerouslySetInnerHTML={{ __html: customCss }} />
       <input type="file" ref={fileInputRef} className="hidden" accept=".md,.txt" onChange={handleImportFile} />
 
