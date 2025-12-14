@@ -34,6 +34,9 @@ export default function App() {
   const [notification, setNotification] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Smooth Loading State
+  const [isParsing, setIsParsing] = useState(false);
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -49,8 +52,11 @@ export default function App() {
     document.title = docName || 'NoWhile Editor';
   }, [docName]);
 
-  // Parsing & History Management
+  // Parsing & History Management with Smooth Loading State
   useEffect(() => {
+    // Indicate loading immediately when markdown changes
+    setIsParsing(true);
+    
     const timer = setTimeout(async () => {
       try {
         const parsed = await parseMarkdown(markdown);
@@ -63,8 +69,11 @@ export default function App() {
         setReadingTime(Math.ceil(words / 200)); 
       } catch (e) {
         console.error("Parse error", e);
+      } finally {
+        // Stop loading after render
+        setIsParsing(false);
       }
-    }, 150);
+    }, 300); // Increased debounce to 300ms for smoother feel on large docs
     return () => clearTimeout(timer);
   }, [markdown]);
 
@@ -230,8 +239,6 @@ export default function App() {
     }, 0);
   };
 
-  const insertLorem = () => insertText("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
-  
   // --- Insert Helpers ---
   const insertDateTime = () => insertText(new Date().toLocaleString());
   const insertColor = (color: string) => insertText(`<span style="color:${color}">`, `</span>`);
@@ -245,11 +252,13 @@ export default function App() {
   const insertBlock = (type: string) => {
     let block = "";
     switch(type) {
+      // Basic
       case 'note': block = '\n> [!NOTE]\n> This is a note alert.\n'; break;
       case 'tip': block = '\n> [!TIP]\n> This is a helpful tip.\n'; break;
       case 'warning': block = '\n> [!WARNING]\n> This is a warning!\n'; break;
       case 'caution': block = '\n> [!CAUTION]\n> Use with caution.\n'; break;
       case 'details': block = '\n<details>\n<summary>Click to expand</summary>\n\nHidden content goes here.\n\n</details>\n'; break;
+      // Advanced
       case 'pricing': block = '\n| Plan | Price | Features |\n| :--- | :---: | :--- |\n| Basic | $10 | ✅ Support |\n| Pro | $29 | ✅ All Features |\n'; break;
       case 'features': block = '\n- ✅ **Feature A**: Description\n- ✅ **Feature B**: Description\n- ⚠️ **Feature C**: Beta\n'; break;
       case 'footnote': insertText('[^1]', '\n\n[^1]: This is the footnote text.'); return;
@@ -260,6 +269,20 @@ export default function App() {
       case 'button': block = '<a href="#" class="btn">Click Me</a>'; break;
       case 'progress': block = '\n<div class="progress-wrap"><div class="progress-bar" style="width: 60%"></div></div>\n'; break;
       case 'filetree': block = '\n<div class="file-tree">\n<ul>\n<li class="folder">src\n<ul>\n<li>index.html</li>\n<li>app.tsx</li>\n</ul>\n</li>\n<li>package.json</li>\n</ul>\n</div>\n'; break;
+      
+      // New Options (12+)
+      case 'kanban': block = '\n<div class="kanban-board">\n<div class="kanban-col"><h4>To Do</h4><div class="kanban-card">Task 1</div></div>\n<div class="kanban-col"><h4>Doing</h4><div class="kanban-card">Task 2</div></div>\n<div class="kanban-col"><h4>Done</h4><div class="kanban-card">Task 3</div></div>\n</div>\n'; break;
+      case 'swot': block = '\n<div class="swot-grid">\n<div class="swot-item swot-s"><strong>Strengths</strong><ul><li>Item 1</li></ul></div>\n<div class="swot-item swot-w"><strong>Weaknesses</strong><ul><li>Item 1</li></ul></div>\n<div class="swot-item swot-o"><strong>Opportunities</strong><ul><li>Item 1</li></ul></div>\n<div class="swot-item swot-t"><strong>Threats</strong><ul><li>Item 1</li></ul></div>\n</div>\n'; break;
+      case 'persona': block = '\n<div class="persona-card">\n<div class="persona-avatar">👤</div>\n<div>\n<h3>User Persona</h3>\n<p><strong>Role:</strong> Manager</p>\n<p><strong>Goal:</strong> Improve efficiency</p>\n</div>\n</div>\n'; break;
+      case 'steps': block = '\n<ul class="step-process">\n<li class="step-item"><strong>Step 1</strong>: Planning</li>\n<li class="step-item"><strong>Step 2</strong>: Execution</li>\n<li class="step-item"><strong>Step 3</strong>: Review</li>\n</ul>\n'; break;
+      case 'kpi': block = '\n<div class="kpi-grid">\n<div class="kpi-card"><div class="kpi-value">250%</div><div class="kpi-label">Growth</div></div>\n<div class="kpi-card"><div class="kpi-value">$12k</div><div class="kpi-label">Revenue</div></div>\n</div>\n'; break;
+      case 'social': block = '\n<div style="border:1px solid #ddd; padding:15px; border-radius:8px; max-width:400px;">\n<div style="font-weight:bold; margin-bottom:5px;">@username</div>\n<p>Just launched a new feature! 🚀 #coding</p>\n<div style="font-size:12px; color:#888; margin-top:10px;">10:30 AM • Oct 24, 2023</div>\n</div>\n'; break;
+      case 'comparison': block = '\n| Feature | Basic | Pro |\n|---|---|---|\n| Users | 1 | Unlimited |\n| Storage | 5GB | 1TB |\n| Support | Email | 24/7 |\n'; break;
+      case 'faq': block = '\n### Frequently Asked Questions\n<details><summary>Question 1?</summary>Answer 1.</details>\n<details><summary>Question 2?</summary>Answer 2.</details>\n'; break;
+      case 'sheetmusic': block = '\n```\n| C D E F | G A B C |\n```\n'; break;
+      case 'terminal': block = '\n<div style="background:#1e1e1e; color:#0f0; padding:15px; border-radius:6px; font-family:monospace;">\n$ npm install package<br/>> added 54 packages in 2s\n</div>\n'; break;
+      case 'recipe': block = '\n### 🍪 Recipe Name\n**Prep:** 10m | **Cook:** 20m\n- [ ] Ingredient 1\n- [ ] Ingredient 2\n\n1. Step one\n2. Step two\n'; break;
+      case 'review': block = '\n> ⭐⭐⭐⭐⭐\n> "Absolutely amazing service! Highly recommended."\n> — *Happy Customer*\n'; break;
     }
     insertText(block);
     setActiveModal('none');
@@ -294,24 +317,31 @@ export default function App() {
 
   // --- Site Footer (Web App) ---
   const SiteFooter = () => (
-    <div className={`site-footer mt-auto py-2 px-4 border-t text-[10px] flex justify-between items-center z-20 no-print ${theme === 'light' ? 'bg-white border-gray-200 text-gray-500' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>
-       <div className="flex items-center gap-4">
-          <span className="font-bold uppercase tracking-wider text-indigo-500">NoWhile Editor</span>
-          <span className="hidden sm:inline">|</span>
-          <span className="hidden sm:inline">All rights reserved © {currentTime.getFullYear()}</span>
+    <div className={`site-footer mt-auto py-3 px-4 border-t text-[11px] flex flex-col sm:flex-row justify-between items-center z-20 no-print gap-2 ${theme === 'light' ? 'bg-white border-gray-200 text-gray-500' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>
+       <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-4 text-center sm:text-left">
+          <div>
+            <span className="font-bold text-indigo-500">NoWhile</span>
+            <span className="mx-1 text-gray-300">|</span>
+            <span className="text-pink-500 font-medium">All rights reserved © {currentTime.getFullYear()}</span>
+          </div>
+          <div className="hidden sm:block w-1 h-1 bg-gray-300 rounded-full"></div>
+          <div className="flex items-center gap-1">
+             <span className="opacity-70">Powered by</span>
+             <span className="font-semibold text-orange-500">Browser Native Print</span>
+             <span className="opacity-70"> - Thank you!</span>
+          </div>
        </div>
        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-1 text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+          <div className="flex items-center gap-2 text-xs font-mono bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             {currentTime.toLocaleTimeString()}
           </div>
-          <span className="opacity-60">PDF Generation via Browser Native Print</span>
        </div>
     </div>
   );
 
   return (
-    <div className={`flex flex-col h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : theme === 'midnight' ? 'bg-slate-900 text-slate-100' : 'bg-white text-gray-900'} transition-colors duration-300`}>
+    <div className={`flex flex-col h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : theme === 'midnight' ? 'bg-slate-900 text-slate-100' : 'bg-white text-gray-900'} transition-colors duration-300 overflow-hidden`}>
       <style dangerouslySetInnerHTML={{ __html: customCss }} />
       <input type="file" ref={fileInputRef} className="hidden" accept=".md,.txt" onChange={handleImportFile} />
 
@@ -323,24 +353,24 @@ export default function App() {
             <Icons.Globe />
           </div>
           <div className="flex flex-col">
-            <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} className={`text-lg font-bold tracking-tight leading-none focus:outline-none focus:border-b border-transparent transition-all w-40 sm:w-64 bg-transparent p-0.5 ${theme === 'light' ? 'focus:border-indigo-500 hover:border-gray-300' : 'focus:border-indigo-400 hover:border-gray-600'}`} placeholder="Document Name" />
+            <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} className={`text-lg font-bold tracking-tight leading-none focus:outline-none focus:border-b border-transparent transition-all w-32 sm:w-64 bg-transparent p-0.5 ${theme === 'light' ? 'focus:border-indigo-500 hover:border-gray-300' : 'focus:border-indigo-400 hover:border-gray-600'}`} placeholder="Document Name" />
             <p className={`text-xs font-medium mt-1 uppercase tracking-wider ${theme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>NoWhile Editor</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Theme & Actions */}
-          <div className={`hidden md:flex rounded-lg border p-1 ${theme === 'light' ? 'bg-gray-100 border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
+          <div className={`hidden lg:flex rounded-lg border p-1 ${theme === 'light' ? 'bg-gray-100 border-gray-200' : 'bg-gray-800 border-gray-700'}`}>
              <button onClick={() => setTheme('light')} className={`p-1.5 rounded-md text-xs font-medium ${theme === 'light' ? 'bg-white shadow text-gray-900' : 'text-gray-400'}`}>Light</button>
              <button onClick={() => setTheme('dark')} className={`p-1.5 rounded-md text-xs font-medium ${theme === 'dark' ? 'bg-gray-600 shadow text-white' : 'text-gray-500'}`}>Dark</button>
              <button onClick={() => setTheme('midnight')} className={`p-1.5 rounded-md text-xs font-medium ${theme === 'midnight' ? 'bg-slate-600 shadow text-white' : 'text-gray-500'}`}>Blue</button>
           </div>
-          <div className="w-px h-6 bg-gray-300 mx-2 hidden md:block"></div>
+          <div className="w-px h-6 bg-gray-300 mx-2 hidden lg:block"></div>
           <button onClick={() => setIsFocused(true)} className="p-2 text-gray-500 hover:text-indigo-500 hidden md:block"><Icons.Maximize /></button>
           <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:text-indigo-500"><Icons.Upload /></button>
-          <button onClick={handleDownloadHTML} className="p-2 text-gray-500 hover:text-indigo-500"><Icons.Html /></button>
-          <button onClick={handleCopyMarkdown} className="p-2 text-gray-500 hover:text-indigo-500"><Icons.Copy /></button>
+          <button onClick={handleDownloadHTML} className="p-2 text-gray-500 hover:text-indigo-500 hidden sm:block"><Icons.Html /></button>
+          <button onClick={handleCopyMarkdown} className="p-2 text-gray-500 hover:text-indigo-500 hidden sm:block"><Icons.Copy /></button>
           <button onClick={handleDownloadMD} className="p-2 text-gray-500 hover:text-green-500"><Icons.Download /></button>
-          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-md transition-all active:scale-95 ml-2"><Icons.Print /> <span className="hidden sm:inline">Print PDF</span></button>
+          <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-md transition-all active:scale-95 ml-2"><Icons.Print /> <span className="hidden sm:inline">Print</span></button>
         </div>
       </header>
       )}
@@ -411,7 +441,6 @@ export default function App() {
             <option value="letter">Letter</option>
             <option value="invoice">Invoice</option>
           </select>
-          <button onClick={insertLorem} className="text-xs p-1.5 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Lorem</button>
           
           <div className="w-px h-4 bg-gray-300 mx-1"></div>
           
@@ -469,7 +498,16 @@ export default function App() {
               <span className="bg-white px-2 py-1 rounded shadow text-xs font-mono">{Math.round(zoomLevel * 100)}%</span>
               <button onClick={() => setZoomLevel(z => Math.min(1.5, z + 0.1))} className="p-1 bg-white rounded shadow text-gray-600 hover:text-indigo-600"><Icons.ZoomIn /></button>
            </div>
-           <div className={`paper-preview ${paperSize === 'a4' ? 'paper-a4' : 'paper-letter'} ${fontFamily === 'serif' ? 'font-serif' : fontFamily === 'mono' ? 'font-mono' : 'font-sans'} ${fontSize === 'sm' ? 'text-size-sm' : fontSize === 'lg' ? 'text-size-lg' : 'text-size-base'}`} style={{ transform: `scale(${zoomLevel})` }}>
+           
+           <div 
+             className={`paper-preview ${paperSize === 'a4' ? 'paper-a4' : 'paper-letter'} ${fontFamily === 'serif' ? 'font-serif' : fontFamily === 'mono' ? 'font-mono' : 'font-sans'} ${fontSize === 'sm' ? 'text-size-sm' : fontSize === 'lg' ? 'text-size-lg' : 'text-size-base'} transition-opacity duration-200`} 
+             style={{ transform: `scale(${zoomLevel})`, opacity: isParsing ? 0.7 : 1 }}
+           >
+              {isParsing && (
+                 <div className="absolute top-4 right-4 text-gray-300 animate-pulse z-20">
+                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                 </div>
+              )}
               <div className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />
               <DocFooter />
            </div>
@@ -477,7 +515,9 @@ export default function App() {
 
         {/* Overlays */}
         {isFocused && <button onClick={() => setIsFocused(false)} className="focus-mode-toggle absolute top-4 right-4 p-2 bg-gray-800 text-white rounded-full opacity-50 hover:opacity-100 z-50 shadow-lg"><Icons.Minimize /></button>}
-        <div className="lg:hidden absolute bottom-16 right-6 flex gap-2 no-print z-40">
+        
+        {/* Mobile View Toggle */}
+        <div className="lg:hidden absolute bottom-24 right-6 flex gap-2 no-print z-40">
           <button onClick={() => setView(view === EditorView.EDIT ? EditorView.PREVIEW : EditorView.EDIT)} className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-transform">{view === EditorView.EDIT ? <Icons.Eye /> : <Icons.Edit />}</button>
         </div>
       </main>
@@ -487,7 +527,7 @@ export default function App() {
 
       {/* Notification Toast */}
       {notification && (
-        <div className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-xl text-sm font-medium animate-bounce-in z-50 flex items-center gap-2 no-print ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+        <div className={`fixed bottom-32 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-xl text-sm font-medium animate-bounce-in z-50 flex items-center gap-2 no-print ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
            {notification.type === 'success' ? <span>✓</span> : <span>!</span>} {notification.msg}
         </div>
       )}
@@ -527,29 +567,67 @@ export default function App() {
                  </div>
                )}
                {activeModal === 'blocks' && (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {[
-                      {id:'note',icon:'ℹ️',t:'Note',d:'Blue info box'}, {id:'tip',icon:'💡',t:'Tip',d:'Green success box'},
-                      {id:'warning',icon:'⚠️',t:'Warning',d:'Yellow warning'}, {id:'caution',icon:'🛑',t:'Caution',d:'Red critical'},
-                      {id:'details',icon:'🔽',t:'Collapsible',d:'Details/Summary'}, {id:'pricing',icon:'💲',t:'Pricing Table',d:'Complex Layout'},
-                      {id:'features',icon:'✅',t:'Feature List',d:'Styled checkboxes'}, {id:'image',icon:'🖼️',t:'Image',d:'Placeholder'},
-                      {id:'timeline',icon:'📅',t:'Timeline',d:'Vertical steps'}, {id:'button',icon:'🔘',t:'Button Link',d:'CTA Button'},
-                      {id:'progress',icon:'📊',t:'Progress Bar',d:'Visual meter'}, {id:'filetree',icon:'📂',t:'File Tree',d:'Folder structure'},
-                      {id:'math',icon:'∑',t:'Math',d:'Latex equation'}, {id:'footnote',icon:'¹',t:'Footnote',d:'Reference'}
-                    ].map(b => (
-                      <button key={b.id} onClick={() => insertBlock(b.id)} className={`p-3 text-left rounded border flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group ${theme==='light'?'border-gray-200':'border-gray-700'}`}>
-                        <span className="text-xl">{b.icon}</span>
-                        <div><div className="text-sm font-bold">{b.t}</div><div className="text-xs opacity-60">{b.d}</div></div>
-                      </button>
-                    ))}
-                    <div className="col-span-full pt-4 border-t mt-2">
-                       <p className="text-xs font-bold mb-2 uppercase opacity-50">Badges</p>
-                       <div className="flex flex-wrap gap-2">
-                         {['blue','green','red','yellow','gray'].map(c => (
-                           <button key={c} onClick={() => insertBadge(c)} className={`px-2 py-1 text-xs rounded border capitalize hover:opacity-80 bg-${c}-100 text-${c}-800`}>{c}</button>
-                         ))}
-                       </div>
-                    </div>
+                 <div>
+                   <div className="text-xs font-bold uppercase opacity-50 mb-2">Categories</div>
+                   <details open className="mb-4">
+                      <summary className="cursor-pointer font-bold mb-2">Basic & Alerts</summary>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                          {[
+                            {id:'note',icon:'ℹ️',t:'Note',d:'Blue info box'}, {id:'tip',icon:'💡',t:'Tip',d:'Green success box'},
+                            {id:'warning',icon:'⚠️',t:'Warning',d:'Yellow warning'}, {id:'caution',icon:'🛑',t:'Caution',d:'Red critical'},
+                            {id:'details',icon:'🔽',t:'Collapsible',d:'Details/Summary'}, {id:'button',icon:'🔘',t:'Button Link',d:'CTA Button'},
+                          ].map(b => (
+                            <button key={b.id} onClick={() => insertBlock(b.id)} className={`p-3 text-left rounded border flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group ${theme==='light'?'border-gray-200':'border-gray-700'}`}>
+                              <span className="text-xl">{b.icon}</span>
+                              <div><div className="text-sm font-bold">{b.t}</div><div className="text-xs opacity-60">{b.d}</div></div>
+                            </button>
+                          ))}
+                      </div>
+                   </details>
+                   
+                   <details className="mb-4">
+                      <summary className="cursor-pointer font-bold mb-2">Diagrams & Charts</summary>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                          {[
+                            {id:'kanban',icon:'📋',t:'Kanban Board',d:'Columns for tasks'}, {id:'swot',icon:'🎯',t:'SWOT Analysis',d:'2x2 Matrix'},
+                            {id:'kpi',icon:'📊',t:'KPI Grid',d:'Stats Dashboard'}, {id:'progress',icon:'📉',t:'Progress Bar',d:'Visual meter'},
+                            {id:'timeline',icon:'📅',t:'Timeline',d:'Vertical steps'}, {id:'filetree',icon:'📂',t:'File Tree',d:'Folder structure'},
+                          ].map(b => (
+                            <button key={b.id} onClick={() => insertBlock(b.id)} className={`p-3 text-left rounded border flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group ${theme==='light'?'border-gray-200':'border-gray-700'}`}>
+                              <span className="text-xl">{b.icon}</span>
+                              <div><div className="text-sm font-bold">{b.t}</div><div className="text-xs opacity-60">{b.d}</div></div>
+                            </button>
+                          ))}
+                      </div>
+                   </details>
+                   
+                   <details className="mb-4">
+                      <summary className="cursor-pointer font-bold mb-2">Content & Layout</summary>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                          {[
+                            {id:'pricing',icon:'💲',t:'Pricing Table',d:'Complex Layout'}, {id:'features',icon:'✅',t:'Feature List',d:'Styled checkboxes'},
+                            {id:'comparison',icon:'🆚',t:'Comparison',d:'Feature Table'}, {id:'faq',icon:'❓',t:'FAQ Section',d:'Q&A List'},
+                            {id:'steps',icon:'👣',t:'Step Process',d:'Numbered Steps'}, {id:'persona',icon:'👤',t:'User Persona',d:'Profile Card'},
+                            {id:'social',icon:'🐦',t:'Social Post',d:'Mockup tweet'}, {id:'review',icon:'⭐',t:'Review',d:'Testimonial'},
+                            {id:'recipe',icon:'🍪',t:'Recipe',d:'Ingredients list'}, {id:'sheetmusic',icon:'🎵',t:'Sheet Music',d:'Text format'},
+                            {id:'terminal',icon:'💻',t:'Terminal',d:'Code Window'}, {id:'math',icon:'∑',t:'Math',d:'Latex equation'},
+                          ].map(b => (
+                            <button key={b.id} onClick={() => insertBlock(b.id)} className={`p-3 text-left rounded border flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group ${theme==='light'?'border-gray-200':'border-gray-700'}`}>
+                              <span className="text-xl">{b.icon}</span>
+                              <div><div className="text-sm font-bold">{b.t}</div><div className="text-xs opacity-60">{b.d}</div></div>
+                            </button>
+                          ))}
+                      </div>
+                   </details>
+                   
+                   <div className="pt-4 border-t mt-2">
+                      <p className="text-xs font-bold mb-2 uppercase opacity-50">Badges</p>
+                      <div className="flex flex-wrap gap-2">
+                        {['blue','green','red','yellow','gray'].map(c => (
+                          <button key={c} onClick={() => insertBadge(c)} className={`px-2 py-1 text-xs rounded border capitalize hover:opacity-80 bg-${c}-100 text-${c}-800`}>{c}</button>
+                        ))}
+                      </div>
+                   </div>
                  </div>
                )}
             </div>
